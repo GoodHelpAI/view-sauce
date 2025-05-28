@@ -1,21 +1,57 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.6">
+  <title>View Sauce Popup</title>
   <style type="text/css">
-    body {background-color: #f2f2f2}
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; -webkit-text-stroke: #000000}
-    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 14.0px '.SF NS'; color: #ffffff; -webkit-text-stroke: #ffffff; background-color: #40a33f}
-    span.s1 {font-kerning: none}
+    body {
+      background-color: #f2f2f2;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      margin: 8px;
+      min-width: 200px; /* Prevent popup from being too small */
+    }
+    .header-image {
+      display: block;
+      margin: 0 auto 5px auto; /* Center image */
+    }
+    h3 {
+      margin: 0 0 10px 0; /* Adjusted margin */
+      font: bold 20px '.SF NS', Arial, sans-serif; /* Added fallback fonts */
+      color: #262626;
+      text-align: center;
+    }
+    .button { /* Common button styles */
+      margin: 10px 0 0 0;
+      text-align: center;
+      font: 14px '.SF NS', Arial, sans-serif; /* Added fallback fonts */
+      color: #ffffff;
+      cursor: pointer;
+      padding: 8px 0;
+      border-radius: 4px; /* Added rounded corners */
+    }
+    #startBtn {
+      background-color: #40a33f;
+    }
+    #stopBtn {
+      background-color: #d9534f;
+      display: none; /* Hidden by default */
+    }
+    #status {
+      margin: 10px 0 0 0;
+      text-align: center;
+      font: 12px 'Helvetica Neue', Arial, sans-serif; /* Added fallback fonts */
+      color: #333333;
+      display: none; /* Hidden by default */
+    }
   </style>
 </head>
 <body>
-<p class="p1"><span class="s1"><img src="file:///Attachment.png" alt="Attachment.png"></span></p>
-<h3 style="margin: 0.0px 0.0px 0.0px 0.0px; font: 20.0px '.SF NS'; color: #262626; -webkit-text-stroke: #262626"><span class="s1"><b>View Sauce</b></span></h3>
-<p class="p3"><span class="s1">See the Sauce</span></p>
+  <img src="icon48.png" alt="View Sauce Icon" class="header-image" width="48" height="48">
+  <h3>View Sauce</h3>
+  <p id="startBtn" class="button">See the Sauce</p>
+  <p id="stopBtn" class="button">Stop Inspecting</p>
+  <p id="status">Inspector active</p>
+  <script src="popup.js"></script> <!-- Ensure popup.js is loaded -->
 </body>
 </html>
