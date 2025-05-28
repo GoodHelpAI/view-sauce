@@ -862,6 +862,36 @@ ${element.tagName.toLowerCase()}[style] {
   document.addEventListener('mousemove', handleMouseMove, true);
   // No keydown listeners in this version (for pinning etc.)
 
+  // Function to handle clicks on page elements to copy CSS
+  function handlePageElementClick(e) {
+    if (isPaused) { // isPinned is not used in this version
+      return;
+    }
+    if (!currentElement) {
+      return;
+    }
+
+    // Check if click was on inspector UI itself
+    if (e.target.id.startsWith('css-inspector-') ||
+        (e.target.closest && e.target.closest('#css-inspector-popup')) ||
+        (e.target.closest && e.target.closest('#css-inspector-controls'))) {
+      return; 
+    }
+
+    // Check if the click is on the currently highlighted element or its children
+    if (currentElement.contains(e.target)) {
+      e.preventDefault();
+      e.stopPropagation(); // Use true for capture phase if needed, but false is usually fine.
+      
+      const rawCss = cssPopup.getAttribute('data-raw-css');
+      if (rawCss) {
+        copyCSS(rawCss, e.clientX, e.clientY);
+      }
+    }
+  }
+  document.addEventListener('click', handlePageElementClick, false); // Add click listener for page elements
+
+
   // Initial setup
   updateButtonStyles(); // Set initial button text/styles
   renderCurrentView(); // Render empty state for popup initially
