@@ -11,6 +11,7 @@
   let copyNotification = null;
   let currentElement = null;
   let isPaused = false;
+  let isPinned = false; // Added state variable for pinning
   let hideTimeout = null;
   let currentViewMode = 'computed'; // Default view mode
 
@@ -107,6 +108,17 @@
   controlBar.appendChild(pauseBtn);
   controlBar.appendChild(viewToggleBtn);
   controlBar.appendChild(stopBtn);
+
+  const pinHintText = document.createElement('span'); // Or 'p'
+  pinHintText.id = 'css-inspector-pin-hint';
+  pinHintText.textContent = 'Click page element to copy, Press Spacebar to pin';
+  pinHintText.style.cssText = `
+    font-size: 10px; 
+    color: ${theme.sourceHref}; 
+    margin-left: 15px; /* Add some space from the buttons */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; /* Match other control bar text */
+  `;
+  controlBar.appendChild(pinHintText);
   document.body.appendChild(controlBar);
 
   // Control button hover effects (will be managed by updateButtonStyles)
@@ -246,13 +258,51 @@
 
   // Helper function to create color swatches
   function createColorSwatchHtml(colorValue) {
-    const s = String(colorValue).trim().toLowerCase();
+    let s = String(colorValue).trim().toLowerCase();
+    if (s === 'inherit' || s === 'currentcolor' || s === 'transparent') {
+      return ''; // No swatch for these
+    }
+
     let validColor = null;
+    // Keep existing regex checks first for common, precise formats
     if (/^#(?:[0-9a-f]{3,4}){1,2}$/.test(s)) validColor = s;
     else if (/^rgba?\(\s*\d+%?\s*,\s*\d+%?\s*,\s*\d+%?\s*(?:,\s*[\d\.]+\s*)?\)$/.test(s)) validColor = s;
     else if (/^hsla?\(\s*[\d\.]+\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%\s*(?:,\s*[\d\.]+\s*)?\)$/.test(s)) validColor = s;
+    else {
+      // Attempt to resolve non-regex-matching colors (e.g., named colors)
+      const tempEl = document.createElement('div');
+      // Element must be in DOM for getComputedStyle to work reliably for all cases,
+      // though for simple color resolution it might work without appending for some browsers.
+      // Appending to document.body is safer.
+      tempEl.style.position = 'fixed'; // Avoid layout shifts
+      tempEl.style.visibility = 'hidden'; // Keep it off-screen and non-interactive
+      document.body.appendChild(tempEl); 
+      
+      tempEl.style.color = ''; // Reset color first
+      tempEl.style.color = s; // Assign original string
+      const computedColor = window.getComputedStyle(tempEl).color;
+      
+      document.body.removeChild(tempEl);
 
-    if (validColor && validColor !== "transparent") {
+      // Check if computedColor is a resolvable format (rgb/rgba primarily)
+      // and it's not the default black for invalid color names (unless original was 'black')
+      if (computedColor && /^rgba?\((.+)\)$/.test(computedColor)) {
+        // This check aims to avoid showing a swatch (especially a black one) if the original colorValue was invalid.
+        // Browsers often default to 'rgb(0, 0, 0)' for invalid color strings.
+        // We make an exception if the original string was 'black', as 'rgb(0, 0, 0)' is its correct resolution.
+        // This is still imperfect for cases where an element might *inherit* black, making an invalid color resolve to black.
+        // A fully robust solution for named colors might involve a predefined list of valid CSS named colors.
+        if (computedColor !== 'rgb(0, 0, 0)' || s === 'black') { 
+            validColor = computedColor;
+        } else {
+            // If it resolved to black and the original string wasn't 'black',
+            // it's likely an invalid color name. We don't want a black swatch for "blak" or "notacolor".
+            // No explicit validColor assignment means no swatch.
+        }
+      }
+    }
+
+    if (validColor) { // validColor could now be an rgb/rgba string from resolution
       return `<span class="color-swatch" style="background-color: ${validColor};"></span>`;
     }
     return '';
@@ -582,7 +632,7 @@ ${element.tagName.toLowerCase()}[style] {
   // This function was incomplete in the provided snippet.
   // It needs to handle element selection, popup positioning, and content rendering.
   function handleMouseMove(e) {
-    if (isPaused) return;
+    if (isPinned || isPaused) return; // Combined check for pinned or paused state
 
     // Get element from point, excluding inspector UI
     const x = e.clientX;
@@ -844,7 +894,8 @@ ${element.tagName.toLowerCase()}[style] {
   // Cleanup function
   window.cssInspectorCleanup = function() {
     document.removeEventListener('mousemove', handleMouseMove, true);
-    // document.removeEventListener('keydown', handleKeyDown, true); // No keydown listeners in this version
+    document.removeEventListener('click', handlePageElementClick, false); // THIS LINE
+    // document.removeEventListener('keydown', handleKeyDown, true); // Comment for keydown is fine
 
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
     if (cssPopup && cssPopup.parentNode) cssPopup.parentNode.removeChild(cssPopup);
@@ -854,13 +905,30 @@ ${element.tagName.toLowerCase()}[style] {
     
     if (hideTimeout) clearTimeout(hideTimeout);
     window.cssInspectorActive = false; // Mark as inactive
-    // Remove self to prevent memory leaks if this function is called multiple times by mistake
     delete window.cssInspectorCleanup; 
   };
 
   // Add main event listener
   document.addEventListener('mousemove', handleMouseMove, true);
   // No keydown listeners in this version (for pinning etc.)
+
+  // Function to handle keydown events (e.g., for pinning)
+  function handleKeyDown(e) {
+    // Allow spacebar if target is not an input/textarea/contenteditable
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
+      // If user is typing in an input, don't let spacebar pin.
+      return;
+    }
+
+    if (e.code === 'Space' && currentElement && !isPinned && !isPaused && cssPopup.style.display === 'flex') {
+      // Prevent default spacebar action (scrolling)
+      e.preventDefault();
+      // console.log("Spacebar pressed, currentElement exists, not pinned, not paused, popup is visible. Ready to pin.");
+      // Pinning logic will be added here.
+    }
+  }
+  document.addEventListener('keydown', handleKeyDown, false);
+
 
   // Function to handle clicks on page elements to copy CSS
   function handlePageElementClick(e) {
